@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.env/
+.mashup/
+.conda/
+
+# Jupyter
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data
+data/
+datasets/
+*.wav
+*.mp3
+*.flac
+*.npy
+*.npz
+
+# Logs
+wandb/
+logs/
+*.log
+
+# Model checkpoints
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+
+# Kaggle output 
+submission.csv
+
+# Temporary
+tmp/
+cache/
+
+# Ignore .envrc for local environment variables
+.envrc
