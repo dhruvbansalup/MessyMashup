@@ -65,11 +65,13 @@ dependencies:
   - intel-openmp=2025.0.0=h06a4308_1171
   - ipykernel=7.2.0=pyha191276_1
   - ipython=8.37.0=pyh8f84b5b_0
+  - ipywidgets=8.1.8=pyhd8ed1ab_0
   - jedi=0.19.2=pyhd8ed1ab_1
   - jinja2=3.1.6=py310h06a4308_0
   - jpeg=9f=h5ce9db8_0
   - jupyter_client=8.8.0=pyhcf101f3_0
   - jupyter_core=5.9.1=pyhc90fa1f_0
+  - jupyterlab_widgets=3.0.16=pyhcf101f3_1
   - kernel-headers_linux-64=4.18.0=h3108a97_1
   - keyutils=1.6.3=hb9d3cd8_0
   - krb5=1.21.3=h659f571_0
@@ -129,6 +131,8 @@ dependencies:
   - libxcb=1.17.0=h9b100fa_0
   - libxml2=2.13.9=h2c43086_0
   - libzlib=1.3.1=hb25bd0a_0
+  - lightning=2.6.1=pyhcf101f3_0
+  - lightning-utilities=0.15.2=pyhd8ed1ab_0
   - lit=21.1.8=py310h06a4308_0
   - lz4-c=1.9.4=h6a678d5_1
   - magma=2.9.0=he7d5317_1
@@ -154,7 +158,6 @@ dependencies:
   - pcre2=10.46=hf426167_0
   - pexpect=4.9.0=pyhd8ed1ab_1
   - pickleshare=0.7.5=pyhd8ed1ab_1004
-  - pillow=12.0.0=py310h3b88751_1
   - pip=26.0.1=pyhc872135_0
   - pixman=0.46.4=h7934f7d_0
   - prompt-toolkit=3.0.52=pyha770c72_0
@@ -167,6 +170,8 @@ dependencies:
   - python-dateutil=2.9.0.post0=pyhe01879c_2
   - python_abi=3.10=2_cp310
   - pytorch=2.5.1=gpu_cuda124_py310h307a77b_204
+  - pytorch-lightning=2.6.1=pyhcf101f3_0
+  - pyyaml=6.0.3=py310h3406613_1
   - pyzmq=27.1.0=py310h4f33d48_0
   - readline=8.3=hc2a1206_0
   - setuptools=80.10.2=py310h06a4308_0
@@ -181,14 +186,17 @@ dependencies:
   - tesseract=5.2.0=hb0d2e87_3
   - tk=8.6.15=h54e0aa7_0
   - torchaudio=2.5.1=cuda124py310hf5dacad_100
+  - torchmetrics=1.8.2=pyhd8ed1ab_0
   - torchvision=0.20.1=cuda124py310ha0e159c_102
   - tornado=6.5.4=py310ha78b2d2_0
+  - tqdm=4.67.3=pyh8f84b5b_0
   - traitlets=5.14.3=pyhd8ed1ab_1
   - triton=3.1.0=cuda124py310hac27663_3
   - typing-extensions=4.15.0=py310h06a4308_0
   - typing_extensions=4.15.0=py310h06a4308_0
   - wcwidth=0.6.0=pyhd8ed1ab_0
   - wheel=0.46.3=py310h06a4308_0
+  - widgetsnbextension=4.0.15=pyhd8ed1ab_0
   - xorg-libx11=1.8.12=h9b100fa_1
   - xorg-libxau=1.0.12=h9b100fa_0
   - xorg-libxdmcp=1.1.5=h9b100fa_0
@@ -196,20 +204,26 @@ dependencies:
   - xorg-libxrender=0.9.12=h9b100fa_0
   - xorg-xorgproto=2024.1=h5eee18b_1
   - xz=5.6.4=h5eee18b_1
+  - yaml=0.2.5=h280c20c_3
   - zeromq=4.3.5=h387f397_9
   - zipp=3.23.0=py310h06a4308_0
   - zlib=1.3.1=hb25bd0a_0
   - zstd=1.5.7=h11fc155_0
   - pip:
       - aiofiles==24.1.0
+      - aiohappyeyeballs==2.6.1
+      - aiohttp==3.13.3
+      - aiosignal==1.4.0
       - alembic==1.18.4
       - altair==6.0.0
       - annotated-doc==0.0.4
       - annotated-types==0.7.0
       - anyio==4.12.1
+      - async-timeout==5.0.1
       - attrs==25.4.0
       - audiomentations==0.43.1
       - audioread==3.1.0
+      - authlib==1.6.8
       - bleach==6.3.0
       - blinker==1.9.0
       - brotli==1.2.0
@@ -220,14 +234,17 @@ dependencies:
       - click==8.3.1
       - colorlog==6.10.1
       - contourpy==1.3.2
+      - cryptography==46.0.5
       - cycler==0.12.1
+      - dl-genai-project-26-t1==0.1.0
       - fastapi==0.129.0
       - ffmpy==1.0.0
       - fonttools==4.61.1
+      - frozenlist==1.8.0
       - gitdb==4.0.12
       - gitpython==3.1.46
-      - gradio==6.5.1
-      - gradio-client==2.0.3
+      - gradio==6.6.0
+      - gradio-client==2.1.0
       - greenlet==3.3.1
       - groovy==0.1.2
       - h11==0.16.0
@@ -236,10 +253,13 @@ dependencies:
       - httpx==0.28.1
       - huggingface-hub==1.4.1
       - idna==3.11
+      - itsdangerous==2.2.0
       - joblib==1.5.3
       - jsonschema==4.26.0
       - jsonschema-specifications==2025.9.1
       - kaggle==1.7.4.5
+      - kagglehub==1.0.0
+      - kagglesdk==0.1.15
       - kiwisolver==1.4.9
       - lazy-loader==0.4
       - librosa==0.11.0
@@ -249,7 +269,9 @@ dependencies:
       - markdown-it-py==4.0.0
       - matplotlib==3.10.8
       - mdurl==0.1.2
+      - messy-mash==0.1.0
       - msgpack==1.1.2
+      - multidict==6.7.1
       - narwhals==2.16.0
       - nnaudio==0.3.4
       - numba==0.63.1
@@ -259,8 +281,11 @@ dependencies:
       - optuna==4.7.0
       - orjson==3.11.7
       - pandas==2.3.3
+      - pillow==11.3.0
       - platformdirs==4.9.0
+      - plotly==6.5.2
       - pooch==1.9.0
+      - propcache==0.4.1
       - protobuf==6.33.5
       - pyarrow==23.0.0
       - pycparser==3.0
@@ -269,11 +294,11 @@ dependencies:
       - pydeck==0.9.1
       - pydub==0.25.1
       - pyparsing==3.3.2
+      - python-dotenv==1.2.1
       - python-multipart==0.0.22
       - python-slugify==8.0.4
       - python-stretch==0.3.1
       - pytz==2025.2
-      - pyyaml==6.0.3
       - referencing==0.37.0
       - regex==2026.1.15
       - requests==2.32.5
@@ -301,7 +326,7 @@ dependencies:
       - toml==0.10.2
       - tomli==2.4.0
       - tomlkit==0.13.3
-      - tqdm==4.67.3
+      - trackio==0.16.1
       - transformers==5.1.0
       - typer==0.23.1
       - typer-slim==0.23.1
@@ -313,4 +338,5 @@ dependencies:
       - watchdog==6.0.0
       - webencodings==0.5.1
       - xgboost==3.2.0
+      - yarl==1.22.0
 prefix: /home/dhruv/miniconda3/envs/messy_mashup

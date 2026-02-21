@@ -24,8 +24,9 @@ venv/
 Thumbs.db
 
 # Data
-data/
-datasets/
+data/raw/
+data/raw
+data/processed/
 *.wav
 *.mp3
 *.flac
@@ -52,3 +53,6 @@ cache/
 
 # Ignore .envrc for local environment variables
 .envrc
+
+# Environment files
+.env
