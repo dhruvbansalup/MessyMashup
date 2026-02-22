@@ -6,9 +6,7 @@ def train(MODEL):
 
     from src.utils import time_now_ist
     from src.data.datamodule import MessyMashDataModule
-    from src.config import TrainConfig, EnvConfig, setup_environment
-
-    setup_environment()
+    from src.config import TrainConfig, EnvConfig
     
     # Setting high precision for matrix multiplications to speed up training
     torch.set_float32_matmul_precision("high")
@@ -61,6 +59,9 @@ def train(MODEL):
     kagglehub_upload_model(MODEL, trainer)
 
 if __name__ == "__main__":
+    from src.config import setup_environment
+    setup_environment()
+    
     from src.models.simple_cnn_01 import SimpleCNN01
 
     MODEL=SimpleCNN01()
