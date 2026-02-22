@@ -3,16 +3,16 @@ from torch.utils.data import Dataset
 import torchaudio
 import random
 
-from ..config import GENRES, STEM_FILES
-from ..utils import genre_to_idx
+from src.config import AudioConfig
+from src.utils import genre_to_idx
 
 class MessyMashDataset(Dataset):
     def __init__(
             self,
             data_dir,
             split="train", # train, val, test
-            sample_rate=22050,
-            duration=10,
+            sample_rate=AudioConfig.SAMPLE_RATE,
+            duration=AudioConfig.DURATION,
     ):
         self.data_dir = data_dir
         self.split = split
@@ -29,7 +29,7 @@ class MessyMashDataset(Dataset):
         data=[]
         genres_path=self.data_dir / "genres_stems"
 
-        for genre in GENRES:
+        for genre in AudioConfig.GENRES:
             genre_dir=genres_path / genre
             for song_dir in genre_dir.iterdir():
                 if song_dir.is_dir():
@@ -47,7 +47,7 @@ class MessyMashDataset(Dataset):
         genre_dir=self.data_dir / "genres_stems" / genre
         all_songs=list(genre_dir.iterdir())
 
-        for stem_name in STEM_FILES:
+        for stem_name in AudioConfig.STEM_FILES:
 
             #Randomly select a song from the genre
             random_song=random.choice(all_songs)
@@ -110,7 +110,7 @@ class MessyMashDataset(Dataset):
         if self.split in ["train", "val"]:
             
             song_dir, genre_idx=self.data[idx]
-            mixed_audio=self._mix_stems(GENRES[genre_idx])
+            mixed_audio=self._mix_stems(AudioConfig.GENRES[genre_idx])
             noisy_audio=self._add_noise(mixed_audio)
 
             # Ensure the audio is the correct length by trimming or padding

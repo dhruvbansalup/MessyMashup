@@ -1,7 +1,9 @@
 import torch
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-from .dataset import MessyMashDataset
+
+from src.data.dataset import MessyMashDataset
+from src.config import AudioConfig
 
 class MessyMashDataModule(pl.LightningDataModule):
 
@@ -23,8 +25,8 @@ class MessyMashDataModule(pl.LightningDataModule):
         full_dataset=MessyMashDataset(
             self.data_dir,
             split="train",
-            # sample_rate=22050,
-            # duration=10,
+            sample_rate=AudioConfig.SAMPLE_RATE,
+            duration=AudioConfig.DURATION,
         )
 
         val_size=int(len(full_dataset) * self.val_split)
