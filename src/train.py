@@ -9,6 +9,9 @@ def train(MODEL):
     from src.config import TrainConfig, EnvConfig, setup_environment
 
     setup_environment()
+    
+    # Setting high precision for matrix multiplications to speed up training
+    torch.set_float32_matmul_precision("high")
 
     # Seed for reproducibility
     pl.seed_everything(TrainConfig.SEED)
@@ -43,13 +46,15 @@ def train(MODEL):
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
         devices="auto",
         log_every_n_steps=10,
-        precision=TrainConfig.PRECISION,
+        precision="16-mixed" if torch.cuda.is_available() else "32",
         callbacks=[checkpoint_callback]
     )
 
     # Train the model
+    print(f"Starting training for model: {MODEL.__class__.__name__}")
     trainer.fit(MODEL, datamodule=DATA_MODULE)
     wandb_logger.experiment.finish()
+    print(f"Training completed for model: {MODEL.__class__.__name__}")
 
     # Uploading to KaggleHub
     from utils import kagglehub_upload_model

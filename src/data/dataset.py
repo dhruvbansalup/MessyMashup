@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import Dataset
 import torchaudio
 import random
+from pathlib import Path
 
 from src.config import AudioConfig
 from src.utils import genre_to_idx
@@ -14,11 +15,15 @@ class MessyMashDataset(Dataset):
             sample_rate=AudioConfig.SAMPLE_RATE,
             duration=AudioConfig.DURATION,
     ):
-        self.data_dir = data_dir
+        self.data_dir = Path(data_dir)
         self.split = split
         self.sample_rate = sample_rate
         self.duration = duration
         self.samples=self.sample_rate * self.duration
+
+        # Preloading noise files
+        self.noise_dir = self.data_dir / "ESC-50-master" / "audio"
+        self.noise_files = list(self.noise_dir.glob("*.wav"))
 
         if split in ["train", "val"]:
             self.data=self._load_train_data()
@@ -71,17 +76,26 @@ class MessyMashDataset(Dataset):
 
             stems.append(waveform)
         
-        #Mix the stems together by summing them
-        mixed_waveform=sum(stems)
+        min_length = min(stem.shape[1] for stem in stems)
+        # Trim all stems
+        stems = [stem[:, :min_length] for stem in stems]
+
+        # Mix the stems together by summing them
+        mixed_waveform = sum(stems)
 
         return mixed_waveform
 
     def _add_noise(self, audio):
+       
+        if not self.noise_files:
+            print(f"No noise files found in {self.noise_dir}. Returning original audio.")
+            return audio
+
         # Randomly selecting the noise
-        noise_files=list((self.data_dir / "noise").glob("*.wav"))
-        noise_file=random.choice(noise_files)
+        noise_file=random.choice(self.noise_files)
 
         noise_waveform, sr=torchaudio.load(noise_file)
+
         noise_waveform=torchaudio.transforms.Resample(
             orig_freq=sr, new_freq=self.sample_rate
         )(noise_waveform)
@@ -89,18 +103,38 @@ class MessyMashDataset(Dataset):
         # Convert to mono
         noise_waveform=noise_waveform.mean(dim=0, keepdim=True)
 
-        # Pad the noise to match the length of the audio i.e adding silence
-        if len(noise_waveform) < len(audio):
-            noise_waveform=torch.nn.functional.pad(
-                noise_waveform, (0, len(audio) - len(noise_waveform))
-            )
-        else:
-            noise_waveform=noise_waveform[:len(audio)]
+        audio_length=audio.shape[1]
+        noise_length=noise_waveform.shape[1]
+
+        # Trim noise if longer
+        if noise_length > audio_length:
+            noise_waveform = noise_waveform[:, :audio_length]
+            noise_length = audio_length
         
+        #Random position insertion
+        start=random.randint(0, audio_length - noise_length)
+
+        padded_noise=torch.nn.functional.pad(
+            noise_waveform, (start, audio_length - noise_length - start)
+        )
+
         # Randomly selecting the noise level
         noise_level=random.uniform(0.01, 0.1)
-        noisy_audio=audio + noise_level * noise_waveform
+
+        noisy_audio=audio + noise_level * padded_noise
         return noisy_audio
+    
+    def _random_crop(self, audio):
+        audio_len = audio.shape[1]
+
+        if audio_len <= self.samples:
+            # pad if too short
+            pad_size = self.samples - audio_len
+            audio = torch.nn.functional.pad(audio, (0, pad_size))
+            return audio
+
+        start = random.randint(0, audio_len - self.samples)
+        return audio[:, start:start + self.samples]
 
     def __len__(self):
         return len(self.data)
@@ -113,14 +147,8 @@ class MessyMashDataset(Dataset):
             mixed_audio=self._mix_stems(AudioConfig.GENRES[genre_idx])
             noisy_audio=self._add_noise(mixed_audio)
 
-            # Ensure the audio is the correct length by trimming or padding
-            if len(noisy_audio) > self.samples:
-                noisy_audio=noisy_audio[:self.samples]
-            else:
-                noisy_audio=torch.nn.functional.pad(
-                    noisy_audio, (0, self.samples - len(noisy_audio))
-                )
-                           
+            noisy_audio=self._random_crop(noisy_audio)
+                
             return noisy_audio, genre_idx
     
         else:
@@ -134,12 +162,6 @@ class MessyMashDataset(Dataset):
             # Convert to mono
             audio=audio.mean(dim=0, keepdim=True)
 
-            # Ensure the audio is the correct length by trimming or padding
-            if len(audio) > self.samples:
-                audio=audio[:self.samples]
-            else:
-                audio=torch.nn.functional.pad(
-                    audio, (0, self.samples - len(audio))
-                )
+            audio = self._random_crop(audio)
             
             return audio

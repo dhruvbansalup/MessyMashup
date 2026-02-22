@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
+from pathlib import Path
 
 from src.data.dataset import MessyMashDataset
 from src.config import AudioConfig
@@ -16,7 +17,7 @@ class MessyMashDataModule(pl.LightningDataModule):
     ):
         super().__init__()
 
-        self.data_dir = data_dir
+        self.data_dir = Path(data_dir)
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.val_split = val_split

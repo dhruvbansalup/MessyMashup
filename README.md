@@ -22,4 +22,10 @@ The goal is to build models that can generalize across distribution shifts and p
 ```bash
 conda env create -f environment.yaml
 conda activate messy_mashup
-``
+```
+
+## Training the Model
+To train the model, run the following command:
+```bash
+python -m src.train
+```

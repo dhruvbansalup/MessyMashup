@@ -16,8 +16,8 @@ class TrainConfig:
     NUM_WORKERS = 4
     VAL_SPLIT = 0.1
     MAX_EPOCHS = 10
-    PRECISION = 16
     SEED = 42
+    LR=1e-3
 
 def setup_kaggle():
     username = os.getenv("KAGGLE_USERNAME")

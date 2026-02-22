@@ -13,12 +13,13 @@ from src.config import AudioConfig
 # BaseModel: Abstract base class for all models in the project
 
 class BaseModel(pl.LightningModule, ABC):
-    def __init__(self):
+    def __init__(self, lr:float):
         super().__init__()
         
         #Automatically saves hyperparameters
         self.save_hyperparameters() 
-
+        
+        self.lr=lr
         self.num_classes = len(AudioConfig.GENRES)
         
         self.val_f1 = MulticlassF1Score(num_classes=self.num_classes, average="macro")
@@ -28,10 +29,15 @@ class BaseModel(pl.LightningModule, ABC):
         self.y_true = []
         self.y_pred = []
 
+        self.epoch_start_time = None
+
     @abstractmethod
     def forward(self, x):
         # Forward pass method to be implemented by all subclasses.
         pass
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=self.lr)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -91,5 +97,6 @@ class BaseModel(pl.LightningModule, ABC):
         self.y_pred.clear()
 
         # Log epoch duration
-        epoch_time_sec = time.time() - self.epoch_start_time
-        self.log("epoch_time_sec", epoch_time_sec, prog_bar=False)
+        if self.epoch_start_time is not None:
+            epoch_time_sec = time.time() - self.epoch_start_time
+            self.log("epoch_time_sec", epoch_time_sec, prog_bar=False)
