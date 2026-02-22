@@ -1,4 +1,6 @@
-def train(MODEL):
+from src.config import setup_environment, EnvConfig
+
+def train(MODEL, data_dir):
     import torch
     import pytorch_lightning as pl
     from pytorch_lightning.callbacks import ModelCheckpoint
@@ -6,7 +8,7 @@ def train(MODEL):
 
     from src.utils import time_now_ist
     from src.data.datamodule import MessyMashDataModule
-    from src.config import TrainConfig, EnvConfig
+    from src.config import TrainConfig
     
     # Setting high precision for matrix multiplications to speed up training
     torch.set_float32_matmul_precision("high")
@@ -15,7 +17,7 @@ def train(MODEL):
     pl.seed_everything(TrainConfig.SEED)
 
     DATA_MODULE=MessyMashDataModule(
-        data_dir=EnvConfig.DATA_DIR,
+        data_dir=data_dir,
         batch_size=TrainConfig.BATCH_SIZE,
         num_workers=TrainConfig.NUM_WORKERS,
         val_split=TrainConfig.VAL_SPLIT,
@@ -59,10 +61,10 @@ def train(MODEL):
     kagglehub_upload_model(MODEL, trainer)
 
 if __name__ == "__main__":
-    from src.config import setup_environment
-    setup_environment()
     
+    setup_environment()
+
     from src.models.simple_cnn_01 import SimpleCNN01
 
     MODEL=SimpleCNN01()
-    train(MODEL)
+    train(MODEL, data_dir=EnvConfig.DATA_DIR)

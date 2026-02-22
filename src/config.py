@@ -38,7 +38,7 @@ class EnvConfig:
     KAGGLE_USERNAME = os.getenv("KAGGLE_USERNAME")
     KAGGLE_KEY = os.getenv("KAGGLE_KEY")
 
-    DATA_DIR = os.getenv("DATA_DIR", "data/raw")
+    DATA_DIR = os.getenv("DATA_DIR", "data/raw/messy_mashup")
 
 def setup_environment():
     # Wandb
