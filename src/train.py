@@ -1,6 +1,6 @@
 from src.config import setup_environment, EnvConfig
 
-def train(MODEL, data_dir):
+def train(MODEL, data_dir=EnvConfig.DATA_DIR):
     import torch
     import pytorch_lightning as pl
     from pytorch_lightning.callbacks import ModelCheckpoint
