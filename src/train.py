@@ -23,20 +23,23 @@ def train(MODEL, data_dir=EnvConfig.DATA_DIR):
         val_split=TrainConfig.VAL_SPLIT,
     )
 
+    model_class_name=MODEL.__class__.__name__
+
     # Model Checkpoint Callback Initialization
     checkpoint_callback=ModelCheckpoint(
         monitor="val_macro_f1",
-        dirpath="checkpoints",
+        dirpath=EnvConfig.CHECKPOINT_DIR,
         mode="max",
-        filename="{MODEL.__class__.__name__}-{epoch:02d}-{val_macro_f1:.4f}",
+        filename="{model_class_name}-{epoch:02d}-{val_macro_f1:.4f}",
         save_top_k=3,
     )
 
     # Wandb Logger Initialization
     wandb_logger = WandbLogger(
         project=EnvConfig.WANDB_PROJECT,
-        name=f"{MODEL.__class__.__name__}-{time_now_ist()}",
-        log_model=True # Automatically log the best model checkpoint to W&B
+        name=f"{model_class_name}-{time_now_ist()}",
+        log_model=True, # Automatically log the best model checkpoint to W&B
+        save_dir=EnvConfig.OUTPUT_DIR
     )
 
     # Pytorch Lightning Trainer Initialization
@@ -51,10 +54,10 @@ def train(MODEL, data_dir=EnvConfig.DATA_DIR):
     )
 
     # Train the model
-    print(f"Starting training for model: {MODEL.__class__.__name__}")
+    print(f"Starting training for model: {model_class_name}")
     trainer.fit(MODEL, datamodule=DATA_MODULE)
     wandb_logger.experiment.finish()
-    print(f"Training completed for model: {MODEL.__class__.__name__}")
+    print(f"Training completed for model: {model_class_name}")
 
     # Uploading to KaggleHub
     from utils import kagglehub_upload_model

@@ -40,6 +40,12 @@ class EnvConfig:
 
     DATA_DIR = os.getenv("DATA_DIR", "data/raw/messy_mashup")
 
+    PROCESSED_DATA_DIR = os.getenv("PROCESSED_DATA_DIR", "data/processed")
+
+    # Output directories
+    OUTPUT_DIR = os.getenv("OUTPUT_DIR", "outputs")
+    CHECKPOINT_DIR = os.getenv("CHECKPOINT_DIR", "outputs/checkpoints")
+
 def setup_environment():
     # Wandb
     if EnvConfig.WANDB_API_KEY:

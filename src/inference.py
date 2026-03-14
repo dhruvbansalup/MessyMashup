@@ -10,6 +10,7 @@ def inference(MODEL_CLASS, MODEL_HANDLE, CKPT_NAME):
 
     @torch.no_grad() # Disable gradient calculation
     def predict():
+        #TODO: Infrence
         pass
 
 if __name__ == "__main__":
