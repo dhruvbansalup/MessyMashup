@@ -8,6 +8,12 @@ class AudioConfig:
     DURATION=30
     SAMPLES_PER_TRACK=SAMPLE_RATE * DURATION
 
+    # Spectogram parameters
+    N_FFT=2048
+    HOP_LENGTH=512
+    N_MELS=128
+
+
     GENRES=["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
     STEM_FILES=["vocals.wav", "drums.wav", "bass.wav", "other.wav"]
 
@@ -39,8 +45,9 @@ class EnvConfig:
     KAGGLE_KEY = os.getenv("KAGGLE_KEY")
 
     DATA_DIR = os.getenv("DATA_DIR", "data/raw/messy_mashup")
-
     PROCESSED_DATA_DIR = os.getenv("PROCESSED_DATA_DIR", "data/processed")
+    TEST_WAV_DIR = os.getenv("TEST_WAV_DIR", "data/raw/messy_mashup/mashups")
+    TEST_CSV = os.getenv("TEST_CSV", "data/raw/messy_mashup/test.csv")
 
     # Output directories
     OUTPUT_DIR = os.getenv("OUTPUT_DIR", "outputs")

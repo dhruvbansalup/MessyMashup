@@ -3,165 +3,104 @@ from torch.utils.data import Dataset
 import torchaudio
 import random
 from pathlib import Path
+import pandas as pd
 
 from src.config import AudioConfig
 from src.utils import genre_to_idx
+from src.data.transforms import BaseTransform
+from src.data.augmentations import  ValTransform
 
-class MessyMashDataset(Dataset):
+
+class ProcessedDataset(Dataset):
+    '''
+    Dataset for pre-mixed waveform .pt files.
+
+    Directory structure expected:
+        processed_dir/
+            blues/
+                blues_mix_0000.pt
+                blues_mix_0001.pt
+                ...
+            classical/
+                classical_mix_0000.pt
+                ...
+
+    train — labelled processed .pt files, with augmentation
+    val   — labelled processed .pt files, no augmentation
+
+    '''
     def __init__(
             self,
-            data_dir,
-            split="train", # train, val, test
-            sample_rate=AudioConfig.SAMPLE_RATE,
-            duration=AudioConfig.DURATION,
+            processed_dir,
+            split="train", # train, val
     ):
-        self.data_dir = Path(data_dir)
+        self.processed_dir = Path(processed_dir)
         self.split = split
-        self.sample_rate = sample_rate
-        self.duration = duration
-        self.samples=self.sample_rate * self.duration
 
-        # Preloading noise files
-        self.noise_dir = self.data_dir / "ESC-50-master" / "audio"
-        self.noise_files = list(self.noise_dir.glob("*.wav"))
-
-        if split in ["train", "val"]:
-            self.data=self._load_train_data()
-        else:
-            self.data=self._load_test_data()
+        self.files = []
+        self.labels = []
         
-    def _load_train_data(self):
-        data=[]
-        genres_path=self.data_dir / "genres_stems"
-
         for genre in AudioConfig.GENRES:
-            genre_dir=genres_path / genre
-            for song_dir in genre_dir.iterdir():
-                if song_dir.is_dir():
-                    data.append((song_dir, genre_to_idx(genre)))
-        return data
-
-
-    def _load_test_data(self):
-        mashup_dir=self.data_dir / "mashups"
-        files=list(mashup_dir.glob("*.wav"))
-        return files
-    
-    def _mix_stems(self, genre):
-        stems=[]
-        genre_dir=self.data_dir / "genres_stems" / genre
-        all_songs=list(genre_dir.iterdir())
-
-        for stem_name in AudioConfig.STEM_FILES:
-
-            #Randomly select a song from the genre
-            random_song=random.choice(all_songs)
-
-            stem_file=random_song / stem_name
-
-            #Loading the stem audio file
-            waveform, sr=torchaudio.load(stem_file) 
-
-            #Resample the audio to the desired sample rate
-            waveform=torchaudio.transforms.Resample(
-                orig_freq=sr, new_freq=self.sample_rate
-            )(waveform)
-
-            #Convert to mono by averaging the channels if audio is stereo
-            waveform=waveform.mean(dim=0, keepdim=True)
+            genre_dir = self.processed_dir / split / genre
             
-            # random instrument gain (simulating balance shifts in the mix)
-            gain=random.uniform(0.5, 1.0)
-            waveform=waveform * gain
+            pt_files = list(genre_dir.glob("*.pt"))
 
-            stems.append(waveform)
-        
-        min_length = min(stem.shape[1] for stem in stems)
-        # Trim all stems
-        stems = [stem[:, :min_length] for stem in stems]
-
-        # Mix the stems together by summing them
-        mixed_waveform = sum(stems)
-
-        return mixed_waveform
-
-    def _add_noise(self, audio):
-       
-        if not self.noise_files:
-            print(f"No noise files found in {self.noise_dir}. Returning original audio.")
-            return audio
-
-        # Randomly selecting the noise
-        noise_file=random.choice(self.noise_files)
-
-        noise_waveform, sr=torchaudio.load(noise_file)
-
-        noise_waveform=torchaudio.transforms.Resample(
-            orig_freq=sr, new_freq=self.sample_rate
-        )(noise_waveform)
-
-        # Convert to mono
-        noise_waveform=noise_waveform.mean(dim=0, keepdim=True)
-
-        audio_length=audio.shape[1]
-        noise_length=noise_waveform.shape[1]
-
-        # Trim noise if longer
-        if noise_length > audio_length:
-            noise_waveform = noise_waveform[:, :audio_length]
-            noise_length = audio_length
-        
-        #Random position insertion
-        start=random.randint(0, audio_length - noise_length)
-
-        padded_noise=torch.nn.functional.pad(
-            noise_waveform, (start, audio_length - noise_length - start)
-        )
-
-        # Randomly selecting the noise level
-        noise_level=random.uniform(0.01, 0.1)
-
-        noisy_audio=audio + noise_level * padded_noise
-        return noisy_audio
-    
-    def _random_crop(self, audio):
-        audio_len = audio.shape[1]
-
-        if audio_len <= self.samples:
-            # pad if too short
-            pad_size = self.samples - audio_len
-            audio = torch.nn.functional.pad(audio, (0, pad_size))
-            return audio
-
-        start = random.randint(0, audio_len - self.samples)
-        return audio[:, start:start + self.samples]
+            self.files.extend(pt_files)
+            self.labels.extend([genre_to_idx(genre)] * len(pt_files))
 
     def __len__(self):
-        return len(self.data)
+        return len(self.files)
     
     def __getitem__(self, idx):
+        # Load the pre-mixed waveform from the .pt file
+        waveform = torch.load(self.files[idx], weights_only=True)
+
+        label = self.labels[idx]
+        return waveform, label
+
+class TestDataset(Dataset):
+    '''
+    Dataset for raw .wav files in the test set.
+    '''
+    def __init__(
+            self,
+            test_dir,
+            test_csv, # For getting ID
+    ):
+        self.test_dir = Path(test_dir)
+
+        # Using test.csv to get the list of test IDs, and then loading corresponding .wav files
+        df=pd.read_csv(test_csv)
+        self.ids=df['id'].tolist()
+        self.files=[self.test_dir / f for f in df['filename']]
         
-        if self.split in ["train", "val"]:
-            
-            song_dir, genre_idx=self.data[idx]
-            mixed_audio=self._mix_stems(AudioConfig.GENRES[genre_idx])
-            noisy_audio=self._add_noise(mixed_audio)
+        print(f"Test Dataset: {len(self.files)} samples.")
 
-            noisy_audio=self._random_crop(noisy_audio)
-                
-            return noisy_audio, genre_idx
+        # Storing - Resempler to ensure all test audio is at the same sample rate as training data
+        self.resampler = {}
+        
     
-        else:
-            mashup_file=self.data[idx]
-            audio, sr=torchaudio.load(mashup_file)
+    def _get_resampler(self, original_SR):
+        if original_SR not in self.resampler:
+            self.resampler[original_SR] = torchaudio.transforms.Resample(orig_freq=original_SR, new_freq=AudioConfig.SAMPLE_RATE)
+        return self.resampler[original_SR]
+        
+    def __len__(self):
+        return len(self.files)
+    
+    def __getitem__(self, idx):
+        #Load and retun spec
 
-            audio=torchaudio.transforms.Resample(
-                orig_freq=sr, new_freq=self.sample_rate
-            )(audio)
+        # Load the raw waveform from the .wav file
+        waveform, sr = torchaudio.load(self.files[idx])
 
-            # Convert to mono
-            audio=audio.mean(dim=0, keepdim=True)
+        # Resample if needed
+        if sr != AudioConfig.SAMPLE_RATE:
+            resampler = self._get_resampler(sr)
+            waveform = resampler(waveform)
 
-            audio = self._random_crop(audio)
-            
-            return audio
+        # Convert to mono if stereo
+        if waveform.shape[0] > 1:
+            waveform = torch.mean(waveform, dim=0, keepdim=True)
+        
+        return waveform

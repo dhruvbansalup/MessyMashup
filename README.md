@@ -29,3 +29,9 @@ To train the model, run the following command:
 ```bash
 python -m src.train
 ```
+
+## Building the Dataset
+To build the dataset by mixing the stems and adding noise, run:
+```bash
+python -m scripts.build_audio_dataset
+```

@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
-from sklearn.metrics import confusion_matrix
+import torchaudio.transforms as T
 from torchmetrics.classification import MulticlassAccuracy, MulticlassF1Score
 from abc import ABC, abstractmethod
 import wandb
@@ -10,26 +10,51 @@ import time
 
 from src.config import AudioConfig
 
-# BaseModel: Abstract base class for all models in the project
-
 class BaseModel(pl.LightningModule, ABC):
+    """
+    Abstract base class for all models in this project.
+
+    Handles the full training loop:
+        - training_step with optional Mixup
+        - validation_step with F1, accuracy, confusion matrix
+        - metric logging to W&B
+        - epoch timing
+    """
+
     def __init__(self, lr:float):
         super().__init__()
-        
-        #Automatically saves hyperparameters
-        self.save_hyperparameters() 
-        
+
+        # save hyperparameters
+        self.save_hyperparameters()
+
         self.lr=lr
         self.num_classes = len(AudioConfig.GENRES)
-        
+
+
         self.val_f1 = MulticlassF1Score(num_classes=self.num_classes, average="macro")
         self.val_acc=MulticlassAccuracy(num_classes=self.num_classes)
+
+        # Loging train_f1 to analyse overfitting signals
+        self.train_f1 = MulticlassF1Score(num_classes=self.num_classes, average="macro")
 
         #Predictions for confusion matrix
         self.y_true = []
         self.y_pred = []
 
-        self.epoch_start_time = None
+        # For epoch timing
+        self.train_epoch_start_time = None
+        self.val_epoch_start_time = None
+
+        # Convert waveform to spectrogram
+        self.mel_transform=T.MelSpectrogram(
+            sample_rate=AudioConfig.SAMPLE_RATE,
+            n_fft=AudioConfig.N_FFT,
+            hop_length=AudioConfig.HOP_LENGTH,
+            n_mels=AudioConfig.N_MELS
+        )
+
+        # Used to convert to log scale (dB)
+        self.db_transform=T.AmplitudeToDB()
 
     @abstractmethod
     def forward(self, x):
@@ -38,24 +63,61 @@ class BaseModel(pl.LightningModule, ABC):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
+    
+    def waveform_to_spectogram(self, waveform):
+        # Compute the mel spectrogram
+        mel_spec = self.mel_transform(waveform)
+
+        # Convert to log scale (dB)
+        log_mel_spec = self.db_transform(mel_spec)
+
+        # Normalize to zero mean and unit variance
+        mean = log_mel_spec.mean()
+        std = log_mel_spec.std()
+        normalized_log_mel_spec = (log_mel_spec - mean) / (std + 1e-6)
+
+        return normalized_log_mel_spec 
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x) # Forward Pass
+        waveform, y = batch
 
-        loss = F.cross_entropy(y_hat, y)
-
-        self.log("train_loss", loss, on_epoch=True, prog_bar=True)
+        x=self.waveform_to_spectogram(waveform)
         
+        logits = self(x) # Forward Pass
+        
+        loss = F.cross_entropy(logits, y)
+        
+        # Compute train predictions for F1 tracking
+        preds = torch.argmax(logits, dim=1)
+        self.train_f1.update(preds, y)
+
+        self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+
         return loss
+    
+    def on_train_epoch_start(self):
+        self.train_epoch_start_time = time.time()
+
+    def on_train_epoch_end(self):
+        # Log train F1 at end of training phase (before validation runs)
+        train_f1 = self.train_f1.compute()
+        self.log("train_macro_f1", train_f1, prog_bar=True)
+        self.train_f1.reset()
+
+        # Log training epoch time
+        if self.train_epoch_start_time is not None:
+            train_time = time.time() - self.train_epoch_start_time
+            self.log("train_epoch_time_sec", train_time, prog_bar=False)
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x) # Forward Pass
+        waveform, y = batch
+        # Convert to spectrogram
+        x = self.waveform_to_spectogram(waveform)
 
-        loss= F.cross_entropy(y_hat, y)
-        preds=torch.argmax(y_hat, dim=1)
-        
+        logits = self(x) # Forward Pass
+        loss= F.cross_entropy(logits, y)
+        preds=torch.argmax(logits, dim=1)
+
         # update metrics
         self.val_f1.update(preds, y)
         self.val_acc.update(preds, y)
@@ -66,20 +128,22 @@ class BaseModel(pl.LightningModule, ABC):
 
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
 
-    def on_train_epoch_start(self):
-        self.epoch_start_time = time.time()
+    def on_validation_epoch_start(self):
+        self.val_epoch_start_time = time.time()
 
     def on_validation_epoch_end(self):
+        # final metrics from batch results
         f1 = self.val_f1.compute()
         acc = self.val_acc.compute()
 
+        # val_macro_f1 is monitored by ModelCheckpoint for saving best model
         self.log("val_macro_f1", f1, prog_bar=True)
         self.log("val_accuracy", acc, prog_bar=True)
 
         #  Concatenate all predictions and true labels for the confusion matrix
         preds = torch.cat(self.y_pred).cpu().tolist()
         trues = torch.cat(self.y_true).cpu().tolist()
-        
+
         if isinstance(self.logger, WandbLogger):
             self.logger.experiment.log({
                 "confusion_matrix": wandb.plot.confusion_matrix(
@@ -97,6 +161,7 @@ class BaseModel(pl.LightningModule, ABC):
         self.y_pred.clear()
 
         # Log epoch duration
-        if self.epoch_start_time is not None:
-            epoch_time_sec = time.time() - self.epoch_start_time
-            self.log("epoch_time_sec", epoch_time_sec, prog_bar=False)
+        if self.val_epoch_start_time is not None:
+            self.log("val_epoch_time_sec",
+                     time.time() - self.val_epoch_start_time,
+                     prog_bar=False)

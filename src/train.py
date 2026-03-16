@@ -1,14 +1,14 @@
-from src.config import setup_environment, EnvConfig
+from src.config import setup_environment, EnvConfig, TrainConfig
 
-def train(MODEL, data_dir=EnvConfig.DATA_DIR):
+def train(MODEL, log=True):
     import torch
     import pytorch_lightning as pl
     from pytorch_lightning.callbacks import ModelCheckpoint
     from pytorch_lightning.loggers import WandbLogger
 
     from src.utils import time_now_ist
-    from src.data.datamodule import MessyMashDataModule
-    from src.config import TrainConfig
+    from src.data.datamodule import MashupDataModule
+    
     
     # Setting high precision for matrix multiplications to speed up training
     torch.set_float32_matmul_precision("high")
@@ -16,11 +16,12 @@ def train(MODEL, data_dir=EnvConfig.DATA_DIR):
     # Seed for reproducibility
     pl.seed_everything(TrainConfig.SEED)
 
-    DATA_MODULE=MessyMashDataModule(
-        data_dir=data_dir,
+    DATA_MODULE=MashupDataModule(
+        processed_data_dir=EnvConfig.PROCESSED_DATA_DIR,
+        test_wav_dir=EnvConfig.TEST_WAV_DIR,
+        test_csv=EnvConfig.TEST_CSV,
         batch_size=TrainConfig.BATCH_SIZE,
         num_workers=TrainConfig.NUM_WORKERS,
-        val_split=TrainConfig.VAL_SPLIT,
     )
 
     model_class_name=MODEL.__class__.__name__
@@ -34,13 +35,15 @@ def train(MODEL, data_dir=EnvConfig.DATA_DIR):
         save_top_k=3,
     )
 
-    # Wandb Logger Initialization
-    wandb_logger = WandbLogger(
-        project=EnvConfig.WANDB_PROJECT,
-        name=f"{model_class_name}-{time_now_ist()}",
-        log_model=True, # Automatically log the best model checkpoint to W&B
-        save_dir=EnvConfig.OUTPUT_DIR
-    )
+    wandb_logger = None
+    if log:
+        # Wandb Logger Initialization
+        wandb_logger = WandbLogger(
+            project=EnvConfig.WANDB_PROJECT,
+            name=f"{model_class_name}-{time_now_ist()}",
+            log_model=True, # Automatically log the best model checkpoint to W&B
+            save_dir=EnvConfig.OUTPUT_DIR
+        )
 
     # Pytorch Lightning Trainer Initialization
     trainer = pl.Trainer(
@@ -56,11 +59,12 @@ def train(MODEL, data_dir=EnvConfig.DATA_DIR):
     # Train the model
     print(f"Starting training for model: {model_class_name}")
     trainer.fit(MODEL, datamodule=DATA_MODULE)
-    wandb_logger.experiment.finish()
+    if log:
+        wandb_logger.experiment.finish()
     print(f"Training completed for model: {model_class_name}")
 
     # Uploading to KaggleHub
-    from utils import kagglehub_upload_model
+    from src.utils import kagglehub_upload_model
     kagglehub_upload_model(MODEL, trainer)
 
 if __name__ == "__main__":
@@ -68,6 +72,7 @@ if __name__ == "__main__":
     setup_environment()
 
     from src.models.simple_cnn_01 import SimpleCNN01
+    from src.models.simple_cnn_02 import SimpleCNN02
 
-    MODEL=SimpleCNN01()
-    train(MODEL, data_dir=EnvConfig.DATA_DIR)
+    MODEL=SimpleCNN02(lr=TrainConfig.LR)
+    train(MODEL, log=True)

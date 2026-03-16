@@ -5,6 +5,10 @@ import torch.nn.functional as F
 from src.models.base_model import BaseModel
 
 class SimpleCNN01(BaseModel):
+    '''
+    Was Trained on the original dataset and doing augmentation on the go.
+    Also the data was only the audio waveform, no spectrograms or MFCCs.
+    '''
     def __init__(self, lr:float=1e-3):
         super().__init__(lr=lr)
        
