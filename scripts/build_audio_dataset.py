@@ -90,7 +90,7 @@ def build_mashup_dataset(mixes_per_song=15, val_songs_per_genre=10):
     '''
     # Paths
     noise_dir = Path(EnvConfig.DATA_DIR) / "ESC-50-master" / "audio"
-    output_dir = Path(EnvConfig.PROCESSED_DATA_DIR) / "mashups"
+    output_dir = Path(EnvConfig.PROCESSED_DATA_DIR)
     stems_dir = Path(EnvConfig.DATA_DIR) / "genres_stems"
     train_dir = output_dir / "train"
     val_dir = output_dir / "val"
