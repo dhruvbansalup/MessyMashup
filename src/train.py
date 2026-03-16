@@ -1,6 +1,6 @@
 from src.config import setup_environment, EnvConfig, TrainConfig
 
-def train(MODEL, log=True):
+def train(MODEL, log=True, processed_data_dir=EnvConfig.PROCESSED_DATA_DIR, test_wav_dir=EnvConfig.TEST_WAV_DIR, test_csv=EnvConfig.TEST_CSV):
     import torch
     import pytorch_lightning as pl
     from pytorch_lightning.callbacks import ModelCheckpoint
@@ -17,9 +17,9 @@ def train(MODEL, log=True):
     pl.seed_everything(TrainConfig.SEED)
 
     DATA_MODULE=MashupDataModule(
-        processed_data_dir=EnvConfig.PROCESSED_DATA_DIR,
-        test_wav_dir=EnvConfig.TEST_WAV_DIR,
-        test_csv=EnvConfig.TEST_CSV,
+        processed_data_dir=processed_data_dir,
+        test_wav_dir=test_wav_dir,
+        test_csv=test_csv,
         batch_size=TrainConfig.BATCH_SIZE,
         num_workers=TrainConfig.NUM_WORKERS,
     )
