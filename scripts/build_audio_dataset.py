@@ -148,16 +148,27 @@ def build_mashup_dataset(mixes_per_song=15, val_songs_per_genre=10, raw_data_dir
                 # Mix the stems of songs in the same tempo bin and add noise
                 mixed = mix_stems(bins[tempo_bin], noise_waveforms)
 
-                # Conveting to log mel spectrogram
-                spec= torchaudio.transforms.MelSpectrogram(sample_rate=AudioConfig.SAMPLE_RATE, n_mels=AudioConfig.N_MELS)(mixed)
-                spec = torchaudio.transforms.AmplitudeToDB()(spec)
+                # Convert to spectrogram
+                mel = torchaudio.transforms.MelSpectrogram(
+                        sample_rate=AudioConfig.SAMPLE_RATE,
+                        n_mels=AudioConfig.N_MELS
+                    )(mixed)
+
+                mel_db = torchaudio.transforms.AmplitudeToDB()(mel)
+
+                mel_db = torch.nn.functional.interpolate(
+                    mel_db.unsqueeze(0),  
+                    size=(128, 128),
+                    mode="bilinear",
+                    align_corners=False
+                ).squeeze(0)
 
                 # Save the spec to val / train folder based on the song index and val_songs_per_genre
                 if i in index_of_val_songs:
                     out_path = val_out_genre_dir / f"{song.stem}_mix_{mix_idx}.pt"
                 else:
                     out_path = train_out_genre_dir / f"{song.stem}_mix_{mix_idx}.pt"
-                torch.save(spec, out_path) # Saving as .pt for faster loading
+                torch.save(mel_db, out_path) # Saving as .pt for faster loading
                 mix_idx += 1
 
         print(f"{genre}: saved {mix_idx} mixes")

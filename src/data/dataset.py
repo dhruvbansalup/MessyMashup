@@ -102,7 +102,18 @@ class TestDataset(Dataset):
             waveform = torch.mean(waveform, dim=0, keepdim=True)
 
         # Convert to spectogram
-        spec= torchaudio.transforms.MelSpectrogram(sample_rate=AudioConfig.SAMPLE_RATE, n_mels=AudioConfig.N_MELS)(waveform)
-        spec = torchaudio.transforms.AmplitudeToDB()(spec)
+        mel = torchaudio.transforms.MelSpectrogram(
+                        sample_rate=AudioConfig.SAMPLE_RATE,
+                        n_mels=AudioConfig.N_MELS
+                    )(waveform)
 
-        return spec, self.ids[idx]
+        mel_db = torchaudio.transforms.AmplitudeToDB()(mel)
+
+        mel_db = torch.nn.functional.interpolate(
+            mel_db.unsqueeze(0),  
+            size=(128, 128),
+            mode="bilinear",
+            align_corners=False
+        ).squeeze(0)
+
+        return mel_db, self.ids[idx]
