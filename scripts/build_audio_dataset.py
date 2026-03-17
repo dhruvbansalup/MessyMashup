@@ -83,15 +83,15 @@ def mix_stems(songs_in_bin, noise_waveforms):
 
     return mixed
 
-def build_mashup_dataset(mixes_per_song=15, val_songs_per_genre=10):
+def build_mashup_dataset(mixes_per_song=15, val_songs_per_genre=10, raw_data_dir=EnvConfig.DATA_DIR, processed_data_dir=EnvConfig.PROCESSED_DATA_DIR):
     '''
     Build the dataset by mixing the stems and adding noise.
     Also splits into train and val
     '''
     # Paths
-    noise_dir = Path(EnvConfig.DATA_DIR) / "ESC-50-master" / "audio"
-    output_dir = Path(EnvConfig.PROCESSED_DATA_DIR)
-    stems_dir = Path(EnvConfig.DATA_DIR) / "genres_stems"
+    noise_dir = Path(raw_data_dir) / "ESC-50-master" / "audio"
+    stems_dir = Path(raw_data_dir) / "genres_stems"
+    output_dir = Path(processed_data_dir)
     train_dir = output_dir / "train"
     val_dir = output_dir / "val"
     
@@ -148,15 +148,19 @@ def build_mashup_dataset(mixes_per_song=15, val_songs_per_genre=10):
                 # Mix the stems of songs in the same tempo bin and add noise
                 mixed = mix_stems(bins[tempo_bin], noise_waveforms)
 
-                # Save the mixed audio to val / train folder based on the song index and val_songs_per_genre
+                # Conveting to log mel spectrogram
+                spec= torchaudio.transforms.MelSpectrogram(sample_rate=AudioConfig.SAMPLE_RATE, n_mels=AudioConfig.N_MELS)(mixed)
+                spec = torchaudio.transforms.AmplitudeToDB()(spec)
+
+                # Save the spec to val / train folder based on the song index and val_songs_per_genre
                 if i in index_of_val_songs:
                     out_path = val_out_genre_dir / f"{song.stem}_mix_{mix_idx}.pt"
                 else:
                     out_path = train_out_genre_dir / f"{song.stem}_mix_{mix_idx}.pt"
-                torch.save(mixed, out_path) # Saving as .pt for faster loading
+                torch.save(spec, out_path) # Saving as .pt for faster loading
                 mix_idx += 1
 
         print(f"{genre}: saved {mix_idx} mixes")
 
 if __name__ == "__main__":
-    build_mashup_dataset()
+    build_mashup_dataset(mixes_per_song=8, val_songs_per_genre=10)

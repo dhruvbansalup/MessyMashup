@@ -7,13 +7,11 @@ import pandas as pd
 
 from src.config import AudioConfig
 from src.utils import genre_to_idx
-from src.data.transforms import BaseTransform
-from src.data.augmentations import  ValTransform
 
 
 class ProcessedDataset(Dataset):
     '''
-    Dataset for pre-mixed waveform .pt files.
+    Dataset for pre-mixed spectograms .pt files.
 
     Directory structure expected:
         processed_dir/
@@ -52,11 +50,11 @@ class ProcessedDataset(Dataset):
         return len(self.files)
     
     def __getitem__(self, idx):
-        # Load the pre-mixed waveform from the .pt file
-        waveform = torch.load(self.files[idx], weights_only=True)
+        # Load the pre-mixed spectrogram from the .pt file
+        spec = torch.load(self.files[idx], weights_only=True)
 
         label = self.labels[idx]
-        return waveform, label
+        return spec, label
 
 class TestDataset(Dataset):
     '''
@@ -102,5 +100,9 @@ class TestDataset(Dataset):
         # Convert to mono if stereo
         if waveform.shape[0] > 1:
             waveform = torch.mean(waveform, dim=0, keepdim=True)
-        
-        return waveform
+
+        # Convert to spectogram
+        spec= torchaudio.transforms.MelSpectrogram(sample_rate=AudioConfig.SAMPLE_RATE, n_mels=AudioConfig.N_MELS)(waveform)
+        spec = torchaudio.transforms.AmplitudeToDB()(spec)
+
+        return spec, self.ids[idx]
