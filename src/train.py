@@ -1,6 +1,6 @@
 from src.config import setup_environment, EnvConfig, TrainConfig
 
-def train(MODEL, log=True,batch_size=TrainConfig.BATCH_SIZE, num_workers=TrainConfig.NUM_WORKERS, processed_data_dir=EnvConfig.PROCESSED_DATA_DIR, test_wav_dir=EnvConfig.TEST_WAV_DIR, test_csv=EnvConfig.TEST_CSV):
+def train(MODEL, log=True,batch_size=TrainConfig.BATCH_SIZE, num_workers=TrainConfig.NUM_WORKERS, processed_data_dir=EnvConfig.PROCESSED_DATA_DIR):
     import torch
     import pytorch_lightning as pl
     from pytorch_lightning.callbacks import ModelCheckpoint
@@ -18,8 +18,8 @@ def train(MODEL, log=True,batch_size=TrainConfig.BATCH_SIZE, num_workers=TrainCo
 
     DATA_MODULE=MashupDataModule(
         processed_data_dir=processed_data_dir,
-        test_wav_dir=test_wav_dir,
-        test_csv=test_csv,
+        test_wav_dir=None, # Not needed for training
+        test_csv=None, # Not needed for training
         batch_size=batch_size,
         num_workers=num_workers,
     )

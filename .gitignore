@@ -27,6 +27,7 @@ Thumbs.db
 data/raw/
 data/raw
 data/processed/
+data/processed.zip
 *.wav
 *.mp3
 *.flac
@@ -56,3 +57,6 @@ cache/
 
 # Environment files
 .env
+
+#Models Downloads
+downloads/

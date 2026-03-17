@@ -33,15 +33,19 @@ def kagglehub_upload_model(model, trainer):
     print(f"{VARIATION} Model Uploaded successdully")
 
 def kagglehub_download_model(model_handle, ckpt_name):
+
+    # Download to downloads
+    download_dir="downloads"
+
     print(f"Downloading model from KaggleHub: {model_handle}")
-    model_path = kagglehub.model_download(model_handle)
+    model_path = kagglehub.model_download(model_handle,output_dir=download_dir)
     
     local_path = os.path.join(model_path, ckpt_name) 
     print(f"Model downloaded to: {local_path}")
 
     return local_path
 
-def load_model_from_checkpoint(model_class, checkpoint_path, load_to_device="cpu"):
+def load_model_from_checkpoint(model_class, checkpoint_path, load_to_device):
     if not os.path.exists(checkpoint_path):
         raise ValueError(f"Checkpoint path does not exist: {checkpoint_path}")
     

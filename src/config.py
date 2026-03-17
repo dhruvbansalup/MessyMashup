@@ -46,7 +46,7 @@ class EnvConfig:
 
     DATA_DIR = os.getenv("DATA_DIR", "data/raw/messy_mashup")
     PROCESSED_DATA_DIR = os.getenv("PROCESSED_DATA_DIR", "data/processed")
-    TEST_WAV_DIR = os.getenv("TEST_WAV_DIR", "data/raw/messy_mashup/mashups")
+    TEST_WAV_DIR = os.getenv("TEST_WAV_DIR", "data/raw/messy_mashup/")
     TEST_CSV = os.getenv("TEST_CSV", "data/raw/messy_mashup/test.csv")
 
     # Output directories

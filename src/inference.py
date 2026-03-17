@@ -16,42 +16,28 @@ def inference(MODEL_CLASS, MODEL_HANDLE, CKPT_NAME, batch_size, num_workers, tes
     model_path=kagglehub_download_model(MODEL_HANDLE, CKPT_NAME)
 
     #Loading Model
-    model=load_model_from_checkpoint(MODEL_CLASS, model_path, load_to_device="gpu" if torch.cuda.is_available() else "cpu")
+    model=load_model_from_checkpoint(MODEL_CLASS, model_path, load_to_device="cuda" if torch.cuda.is_available() else "cpu")
 
     # Building test dataset
     from src.data.dataset import TestDataset
     
     data_module = MashupDataModule(
-        processed_data_dir=None,
+        processed_data_dir=None, # Not needed for inference
         test_wav_dir=test_wav_dir,
         test_csv=test_csv,
         batch_size=batch_size,
         num_workers=num_workers,
     )
-    data_module.setup()
+    data_module.setup(stage="test")
     test_loader = data_module.test_dataloader()
 
     all_predictions = []
 
     with torch.no_grad():
         for batch in tqdm(test_loader, desc="Inference"):
-            waveforms, file_names = batch
-            waveforms = waveforms.to(device)
-    
-            mel = torchaudio.transforms.MelSpectrogram(
-                        sample_rate=AudioConfig.SAMPLE_RATE,
-                        n_mels=AudioConfig.N_MELS
-                    )(waveforms)
-
-            mel_db = torchaudio.transforms.AmplitudeToDB()(mel)
-            
-            spec = torch.nn.functional.interpolate(
-                mel_db.unsqueeze(0),  
-                size=(128, 128),
-                mode="bilinear",
-                align_corners=False
-            ).squeeze(0)
-            
+            spec, file_names = batch
+            spec = spec.to(device)
+                        
             logits = model(spec) # Forward Pass                   
             preds  = torch.argmax(logits, dim=1)     
             genres = [idx_to_genre(p.item()) for p in preds.cpu()]
@@ -65,10 +51,11 @@ def inference(MODEL_CLASS, MODEL_HANDLE, CKPT_NAME, batch_size, num_workers, tes
     return submission_df
 
 if __name__ == "__main__":
+    from src.models.simple_cnn_02 import SimpleCNN02
 
-    MODEL_CLASS=None
-    MODEL_HANDLE=None
-    CKPT_NAME=None
+    MODEL_CLASS=SimpleCNN02
+    MODEL_HANDLE='dhruvbansalup/dl-genai-project-26-t1-messy-mashup/pytorch/simplecnn02'
+    CKPT_NAME='model_class_name0-epoch02-val_macro_f10.6853.ckpt'
 
     submission_df=inference(MODEL_CLASS, MODEL_HANDLE, CKPT_NAME, batch_size=32, num_workers=4)
     submission_df.to_csv("outputs/submissions/submission.csv", index=False)

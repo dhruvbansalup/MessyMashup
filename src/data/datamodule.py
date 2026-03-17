@@ -21,9 +21,9 @@ class MashupDataModule(pl.LightningDataModule):
     ):
         super().__init__()
 
-        self.processed_data_dir = Path(processed_data_dir)
-        self.test_wav_dir = Path(test_wav_dir)
-        self.test_csv = Path(test_csv)
+        self.processed_data_dir = Path(processed_data_dir) if processed_data_dir is not None else None
+        self.test_wav_dir = Path(test_wav_dir) if test_wav_dir is not None else None
+        self.test_csv = Path(test_csv) if test_csv is not None else None
         self.batch_size = batch_size
         self.num_workers = num_workers
 
@@ -35,9 +35,12 @@ class MashupDataModule(pl.LightningDataModule):
         '''
         Build Dataset objects
         '''
-        self.train_dataset = ProcessedDataset(self.processed_data_dir, split="train")
-        self.val_dataset = ProcessedDataset(self.processed_data_dir, split="val")
-        self.test_dataset = TestDataset(self.test_wav_dir, self.test_csv)
+        if stage == "fit" or stage is None:
+            self.train_dataset = ProcessedDataset(self.processed_data_dir, split="train")
+            self.val_dataset = ProcessedDataset(self.processed_data_dir, split="val")
+        
+        if stage == "test" or stage is None:
+            self.test_dataset = TestDataset(self.test_wav_dir, self.test_csv)
 
 
     def _make_dataloader(self, dataset, shuffle=False):
@@ -54,11 +57,20 @@ class MashupDataModule(pl.LightningDataModule):
         )
 
     def train_dataloader(self):
+        if self.train_dataset is None:
+            raise ValueError("Train dataset not initialized")
+        
         # shuffle for different data order each epoch
         return self._make_dataloader(self.train_dataset, shuffle=True)
 
     def val_dataloader(self):
+        if self.val_dataset is None:
+            raise ValueError("Validation dataset not initialized")
+
         return self._make_dataloader(self.val_dataset, shuffle=False)
 
     def test_dataloader(self):
+        if self.test_dataset is None:
+            raise ValueError("Test dataset not initialized")
+        
         return self._make_dataloader(self.test_dataset, shuffle=False)
