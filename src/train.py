@@ -1,6 +1,6 @@
 from src.config import setup_environment, EnvConfig, TrainConfig
 
-def train(MODEL, log=True,batch_size=TrainConfig.BATCH_SIZE, num_workers=TrainConfig.NUM_WORKERS, processed_data_dir=EnvConfig.PROCESSED_DATA_DIR):
+def train(MODEL, log=True,batch_size=TrainConfig.BATCH_SIZE, max_epochs=TrainConfig.MAX_EPOCHS, num_workers=TrainConfig.NUM_WORKERS, processed_data_dir=EnvConfig.PROCESSED_DATA_DIR):
     import torch
     import pytorch_lightning as pl
     from pytorch_lightning.callbacks import ModelCheckpoint
@@ -47,7 +47,7 @@ def train(MODEL, log=True,batch_size=TrainConfig.BATCH_SIZE, num_workers=TrainCo
 
     # Pytorch Lightning Trainer Initialization
     trainer = pl.Trainer(
-        max_epochs=TrainConfig.MAX_EPOCHS,
+        max_epochs=max_epochs,
         logger=wandb_logger,
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
         devices="auto",
@@ -73,6 +73,7 @@ if __name__ == "__main__":
 
     from src.models.simple_cnn_01 import SimpleCNN01
     from src.models.simple_cnn_02 import SimpleCNN02
+    from src.models.pretrained_01 import Pretrained001
 
     MODEL=SimpleCNN02(lr=TrainConfig.LR)
     train(MODEL, log=True, batch_size=20, num_workers=2)
