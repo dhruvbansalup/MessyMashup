@@ -100,6 +100,8 @@ class TestDataset(Dataset):
         # Convert to mono if stereo
         if waveform.shape[0] > 1:
             waveform = torch.mean(waveform, dim=0, keepdim=True)
+        
+        #[1,22050]
 
         # Convert to spectogram
         mel = torchaudio.transforms.MelSpectrogram(
@@ -107,8 +109,11 @@ class TestDataset(Dataset):
                         n_mels=AudioConfig.N_MELS
                     )(waveform)
 
-        mel_db = torchaudio.transforms.AmplitudeToDB()(mel)
+        #[1, n_mels, time_frames] -> [1, 128, 128]
 
+        mel_db = torchaudio.transforms.AmplitudeToDB()(mel)
+        
+        # Interpolate to 128x128
         mel_db = torch.nn.functional.interpolate(
             mel_db.unsqueeze(0),  
             size=(128, 128),

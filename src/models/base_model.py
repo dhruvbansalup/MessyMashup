@@ -45,17 +45,6 @@ class BaseModel(pl.LightningModule, ABC):
         self.train_epoch_start_time = None
         self.val_epoch_start_time = None
 
-        # Convert waveform to spectrogram
-        self.mel_transform=T.MelSpectrogram(
-            sample_rate=AudioConfig.SAMPLE_RATE,
-            n_fft=AudioConfig.N_FFT,
-            hop_length=AudioConfig.HOP_LENGTH,
-            n_mels=AudioConfig.N_MELS
-        )
-
-        # Used to convert to log scale (dB)
-        self.db_transform=T.AmplitudeToDB()
-
     @abstractmethod
     def forward(self, x):
         # Forward pass method to be implemented by all subclasses.
@@ -63,28 +52,11 @@ class BaseModel(pl.LightningModule, ABC):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
-    
-    def waveform_to_spectogram(self, waveform):
-        # Compute the mel spectrogram
-        mel_spec = self.mel_transform(waveform)
-
-        # Convert to log scale (dB)
-        log_mel_spec = self.db_transform(mel_spec)
-
-        # Normalize to zero mean and unit variance
-        mean = log_mel_spec.mean()
-        std = log_mel_spec.std()
-        normalized_log_mel_spec = (log_mel_spec - mean) / (std + 1e-6)
-
-        return normalized_log_mel_spec 
 
     def training_step(self, batch, batch_idx):
-        waveform, y = batch
-
-        x=self.waveform_to_spectogram(waveform)
+        x, y = batch
         
         logits = self(x) # Forward Pass
-        
         loss = F.cross_entropy(logits, y)
         
         # Compute train predictions for F1 tracking
@@ -110,9 +82,7 @@ class BaseModel(pl.LightningModule, ABC):
             self.log("train_epoch_time_sec", train_time, prog_bar=False)
 
     def validation_step(self, batch, batch_idx):
-        waveform, y = batch
-        # Convert to spectrogram
-        x = self.waveform_to_spectogram(waveform)
+        x, y = batch
 
         logits = self(x) # Forward Pass
         loss= F.cross_entropy(logits, y)

@@ -1,8 +1,10 @@
+import torchaudio
 from tqdm import tqdm
 import pandas as pd
 import torch
+from src.data.datamodule import MashupDataModule
 from src.utils import kagglehub_download_model, load_model_from_checkpoint
-from src.config import EnvConfig, TrainConfig
+from src.config import EnvConfig, AudioConfig
 from src.utils import idx_to_genre
 
 def inference(MODEL_CLASS, MODEL_HANDLE, CKPT_NAME, batch_size, num_workers, test_wav_dir=EnvConfig.TEST_WAV_DIR, test_csv=EnvConfig.TEST_CSV):
@@ -18,14 +20,16 @@ def inference(MODEL_CLASS, MODEL_HANDLE, CKPT_NAME, batch_size, num_workers, tes
 
     # Building test dataset
     from src.data.dataset import TestDataset
-    test_dataset = TestDataset(test_wav_dir, test_csv)
-
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset, 
+    
+    data_module = MashupDataModule(
+        processed_data_dir=None,
+        test_wav_dir=test_wav_dir,
+        test_csv=test_csv,
         batch_size=batch_size,
         num_workers=num_workers,
-        pin_memory=(device=="cuda")
     )
+    data_module.setup()
+    test_loader = data_module.test_dataloader()
 
     all_predictions = []
 
@@ -33,17 +37,28 @@ def inference(MODEL_CLASS, MODEL_HANDLE, CKPT_NAME, batch_size, num_workers, tes
         for batch in tqdm(test_loader, desc="Inference"):
             waveforms, file_names = batch
             waveforms = waveforms.to(device)
+    
+            mel = torchaudio.transforms.MelSpectrogram(
+                        sample_rate=AudioConfig.SAMPLE_RATE,
+                        n_mels=AudioConfig.N_MELS
+                    )(waveforms)
 
-            #Spectrogram conversion
-            specs  = model.waveform_to_spectogram(waveforms)
-
-            logits = model(specs)                      
+            mel_db = torchaudio.transforms.AmplitudeToDB()(mel)
+            
+            spec = torch.nn.functional.interpolate(
+                mel_db.unsqueeze(0),  
+                size=(128, 128),
+                mode="bilinear",
+                align_corners=False
+            ).squeeze(0)
+            
+            logits = model(spec) # Forward Pass                   
             preds  = torch.argmax(logits, dim=1)     
             genres = [idx_to_genre(p.item()) for p in preds.cpu()]
             all_predictions.extend(genres)
     
     submission_df = pd.DataFrame({
-        "id": test_dataset.ids,
+        "id": data_module.test_dataset.ids,
         "genre": all_predictions
     })
 
