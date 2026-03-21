@@ -87,10 +87,17 @@ class TestDataset(Dataset):
         return len(self.files)
     
     def __getitem__(self, idx):
-        #Load and retun spec
-
         # Load the raw waveform from the .wav file
         waveform, sr = torchaudio.load(self.files[idx])
+
+        # Fixed Length
+        target_len = AudioConfig.SAMPLE_RATE * 30
+        if waveform.shape[1] > target_len:
+            waveform = waveform[:, :target_len]
+        else:
+            waveform = torch.nn.functional.pad(
+                waveform, (0, target_len - waveform.shape[1])
+            )
 
         # Resample if needed
         if sr != AudioConfig.SAMPLE_RATE:

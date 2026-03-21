@@ -60,3 +60,6 @@ cache/
 
 #Models Downloads
 downloads/
+
+#Output files
+outputs/

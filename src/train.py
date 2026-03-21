@@ -31,7 +31,7 @@ def train(MODEL, log=True,batch_size=TrainConfig.BATCH_SIZE, max_epochs=TrainCon
         monitor="val_macro_f1",
         dirpath=EnvConfig.CHECKPOINT_DIR,
         mode="max",
-        filename="{model_class_name}-{epoch:02d}-{val_macro_f1:.4f}",
+        filename=f"{model_class_name}-{{epoch:02d}}-{{val_macro_f1:.4f}}",
         save_top_k=3,
     )
 
@@ -76,4 +76,4 @@ if __name__ == "__main__":
     from src.models.pretrained_01 import Pretrained001
 
     MODEL=SimpleCNN02(lr=TrainConfig.LR)
-    train(MODEL, log=True, batch_size=20, num_workers=2)
+    train(MODEL, log=True, batch_size=20, num_workers=2, max_epochs=12)

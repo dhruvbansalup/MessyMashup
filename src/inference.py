@@ -51,11 +51,19 @@ def inference(MODEL_CLASS, MODEL_HANDLE, CKPT_NAME, batch_size, num_workers, tes
     return submission_df
 
 if __name__ == "__main__":
-    from src.models.simple_cnn_02 import SimpleCNN02
 
-    MODEL_CLASS=SimpleCNN02
-    MODEL_HANDLE='dhruvbansalup/dl-genai-project-26-t1-messy-mashup/pytorch/simplecnn02'
-    CKPT_NAME='model_class_name0-epoch02-val_macro_f10.6853.ckpt'
+
+    # from src.models.simple_cnn_02 import SimpleCNN02
+    # MODEL_CLASS=SimpleCNN02
+    # MODEL_HANDLE='dhruvbansalup/dl-genai-project-26-t1-messy-mashup/pytorch/simplecnn02'
+    # CKPT_NAME='model_class_name0-epoch02-val_macro_f10.6853.ckpt'
+
+
+    from src.models.pretrained_01 import Pretrained001
+    MODEL_CLASS=Pretrained001
+    MODEL_HANDLE='dhruvbansalup/dl-genai-project-26-t1-messy-mashup/pytorch/pretrained001'
+    CKPT_NAME="model_class_name0-epoch07-val_macro_f10.8389.ckpt"
+
 
     submission_df=inference(MODEL_CLASS, MODEL_HANDLE, CKPT_NAME, batch_size=32, num_workers=4)
     submission_df.to_csv("outputs/submissions/submission.csv", index=False)
